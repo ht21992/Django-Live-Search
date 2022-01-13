@@ -1,0 +1,247 @@
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<!-- semantic UI -->
+<link rel="stylesheet" type='text/css' href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.14/semantic.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+<style>
+
+.colorbox {
+
+  height: 20px;
+  width: 20px;
+  margin: 10px;
+  border: 1px solid black;
+
+  border-radius: 50%;
+}
+</style>
+
+{% load static %}
+
+
+<div style="margin:20px" class="ui grid">
+
+    <div  class="three wide column">
+        <div style="background-color:#ffffff00;box-shadow:none;border:none"  class="item ui center aligned segment">
+            <form action="" method="GET">
+                <div class="ui action left icon input">
+                    <input style="width:160px"   id="search_box"  class="prompt" type="text" name='q' placeholder="I'm looking for">
+                    <i class="search icon"></i>
+                    <button type='button' class="ui button">Search</button>
+                </div>
+            </form>
+        </div>
+        <h4  style="margin:10px">Manufacturer</h4>
+        {% for car in cars|dictsort:'make' %}
+        {% ifchanged %}<div style="margin:10px" class="ui checkbox">
+        <input type="checkbox" name="{{car.make}}">
+        <label>{{car.make|capfirst}}</label>
+    </div>{% endifchanged %}
+
+        {% endfor %}
+
+        <div style="visibility:hidden" id='color'>
+
+        </div>
+    </div>
+
+
+
+
+
+
+    <div class="thirteen wide column">
+        <div id="display-box"  class="ui special cards">
+            {% for car in cars %}
+            <div class="card">
+                <div class="blurring dimmable image">
+                    <div class="ui dimmer">
+                        <div class="content">
+                            <div class="center">
+                                <div class="ui inverted">{{car.model|capfirst}} - {{car.make|capfirst}}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <img style="height:200px;" src="{{car.img.url}}">
+                </div>
+                <div class="content">
+                    <div style="background-color: {{car.color}};" class='colorbox'></div>
+                    <a class="header">{{car.model|capfirst}}</a>
+                    <div class="meta">
+
+                        <span class="date">{{car.make|capfirst}}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+$(document).ready(function(){
+    $('.special.cards .image').dimmer({
+  on: 'hover'
+});
+
+
+
+// live search starts
+
+const raw_data = '{{json_data}}';
+var data = JSON.parse(raw_data.replace(/&quot;/g,'"'));
+console.log(data);
+var all_filters = [];
+all_colors = [];
+const box = document.getElementById('display-box')
+var color = document.getElementById('color');
+const input = document.getElementById('search_box')
+
+
+// add listener for search-box
+input.addEventListener('keyup',(e)=>{
+all_filters = []
+make_filteredArr = data.filter(record=> record['make'].includes(e.target.value.toLowerCase()))
+model_filteredArr = data.filter(record=> record['model'].includes(e.target.value.toLowerCase()))
+color_filteredArr = data.filter(record=> record['color'].includes(e.target.value.toLowerCase()))
+final_filter=make_filteredArr.concat(model_filteredArr);
+final_filter=final_filter.concat(color_filteredArr);
+apply_filters(final_filter)
+
+})
+
+
+
+        $('input[type="checkbox"]').click(function(){
+
+
+
+            if($(this).prop("checked") == true){
+                input.value = ''
+                filteredArr = data.filter(record=> record['make'] == this.name);
+                all_filters = all_filters.concat(filteredArr);
+                apply_filters(all_filters)
+
+
+            }
+            else if($(this).prop("checked") == false){
+                //console.log("Checkbox is unchecked.");
+                all_filters = all_filters.filter(record=> record['make'] != this.name);
+                apply_filters(all_filters)
+            }
+
+
+        });
+
+
+
+
+
+
+// function starts
+function apply_filters(filtered_arr){
+
+if (input.value.length >= 1){
+$('input[type="checkbox"]').each(function() {
+			this.checked = false;
+		});
+}
+
+if ($('input[type="checkbox"]').not(':checked').length == {{checkbox_number}} && input.value.length == 0) {
+            filtered_arr = data
+            }
+
+
+
+
+let uniqueList = filtered_arr.filter((element, index) => {
+
+    if (all_colors.includes(element['color'])){
+    // Do nothing
+    }
+    else{
+    all_colors.push(element['color'])
+    }
+    return filtered_arr.indexOf(element) === index;
+    })
+
+console.log(all_colors)
+box.innerHTML =" "
+
+if(uniqueList.length >0 ){
+
+        if (filtered_arr != data){
+        color.innerHTML =`<h4  style="margin:10px">Color</h4> `
+        color.style.visibility = 'visible';
+        }
+
+        else {
+        color.style.visibility = 'hidden';
+
+        }
+
+                    uniqueList.map(car => {
+
+        box.innerHTML += `
+        <div class="card">
+                <div class="blurring dimmable image">
+                    <div class="ui dimmer">
+                        <div class="content">
+                            <div class="center">
+                                <div style="text-transform: capitalize;" class="ui inverted">${car['model']} - ${car['make']}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <img style="height:200px;" src="/media/${car['img']}">
+                </div>
+                <div class="content">
+                    <div style="background-color: ${car['color']};" class='colorbox'></div>
+                    <a style="text-transform: capitalize;" class="header">${car['model']} </a>
+                    <div class="meta">
+                        <span style="text-transform: capitalize;" class="date">${car['make']}</span>
+                    </div>
+                </div>
+            </div>
+
+            `
+            $('.special.cards .image').dimmer({
+                on: 'hover'
+            });
+
+
+
+    });
+    all_colors.map(c => {
+    color.innerHTML += `<div><div style="background-color: ${c};" class='colorbox'></div></div>`
+
+    });
+
+    }
+    else{
+    box.innerHTML += ` Nothing found`
+    $('input[type="checkbox"]').each(function() {
+			this.checked = false;
+		});
+
+    }
+all_colors = []
+}
+// function ends
+
+    });
+
+
+
+
+
+
+
+
+</script>
+
+
